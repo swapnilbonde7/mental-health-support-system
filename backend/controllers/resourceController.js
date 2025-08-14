@@ -52,8 +52,9 @@ exports.getResources = async (req, res) => {
 
 /**
  * PUT /api/resources/:id
- * Auth: JWT
+ * Auth: JWT (Edit resource)
  */
+
 exports.updateResource = async (req, res) => {
   try {
     const { title, type, url, tags = [], description } = req.body;
