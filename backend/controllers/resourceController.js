@@ -78,8 +78,9 @@ exports.updateResource = async (req, res) => {
 
 /**
  * DELETE /api/resources/:id
- * Auth: JWT
+ * Auth: JWT (Delete resource by id)
  */
+
 exports.deleteResource = async (req, res) => {
   try {
     const deleted = await Resource.findByIdAndDelete(req.params.id);
