@@ -1,48 +1,35 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../axiosConfig';
 
-const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+export default function Login() {
+  const nav = useNavigate();
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [err, setErr] = useState('');
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    setErr('');
     try {
-      const response = await axiosInstance.post('/auth/login', formData);
-      login(response.data);
-      navigate('/tasks');
-    } catch (error) {
-      alert('Login failed. Please try again.');
+      await login(email, password);
+      nav('/resources');
+    } catch (e) {
+      setErr(e?.response?.data?.message || 'Login failed.');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20">
-      <form onSubmit={handleSubmit} className="bg-white p-6 shadow-md rounded">
-        <h1 className="text-2xl font-bold mb-4 text-center">Login</h1>
-        <input
-          type="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="w-full mb-4 p-2 border rounded"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          className="w-full mb-4 p-2 border rounded"
-        />
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
-          Login
-        </button>
+    <div className="max-w-md mx-auto p-6">
+      <h1 className="text-xl font-semibold mb-4">Log in</h1>
+      {err && <div className="mb-3 text-red-600">{err}</div>}
+      <form onSubmit={onSubmit} className="space-y-3">
+        <input className="w-full border p-2 rounded" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input className="w-full border p-2 rounded" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <button className="px-4 py-2 bg-indigo-600 text-white rounded">Log in</button>
       </form>
+      <p className="mt-3 text-sm">No account? <Link to="/register" className="text-indigo-600">Register</Link></p>
     </div>
   );
-};
-
-export default Login;
+}

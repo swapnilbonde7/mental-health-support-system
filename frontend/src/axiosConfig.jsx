@@ -1,11 +1,6 @@
-// frontend/src/axiosConfig.jsx
 import axios from 'axios';
 
-const api = axios.create({
-  // OPTION A (preferred): use CRA proxy via package.json
-  baseURL: '/api', // <-- important: just "/api"
-  // If we still fail after step 4, switch to OPTION B below.
-});
+const api = axios.create({ baseURL: '/' }); // proxy will forward /api/* to 5001
 
 api.interceptors.request.use((config) => {
   const token =

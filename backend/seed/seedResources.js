@@ -1,67 +1,22 @@
-// backend/seed/seedResources.js
-const mongoose = require('mongoose');
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
 
-const Resource = require('../models/Resource'); // adjust path if your model file name differs
+const connectDB = require('../config/db');
+const Resource = require('../models/Resource');
 
 const data = [
-  {
-    title: 'Beyond Blue',
-    type: 'link',
-    url: 'https://www.beyondblue.org.au',
-    tags: ['support', 'depression', 'anxiety'],
-    description: 'Information & 24/7 mental health support.'
-  },
-  {
-    title: 'Lifeline Australia',
-    type: 'link',
-    url: 'https://www.lifeline.org.au',
-    tags: ['crisis', '24/7', 'phone'],
-    description: '13 11 14 – crisis support & suicide prevention.'
-  },
-  {
-    title: 'Headspace',
-    type: 'link',
-    url: 'https://headspace.org.au',
-    tags: ['youth', 'counselling', 'services'],
-    description: 'Youth mental health & wellbeing services.'
-  },
-  {
-    title: 'SANE Australia',
-    type: 'link',
-    url: 'https://www.sane.org',
-    tags: ['complex mental health', 'support'],
-    description: 'Support for people with complex mental health needs.'
-  },
-  {
-    title: 'Black Dog Institute',
-    type: 'link',
-    url: 'https://www.blackdoginstitute.org.au',
-    tags: ['research', 'resources', 'depression'],
-    description: 'Evidence‑based resources & support.'
-  },
-  {
-    title: 'Head to Health',
-    type: 'link',
-    url: 'https://www.headtohealth.gov.au',
-    tags: ['gov', 'directory', 'services'],
-    description: 'Government portal to mental health services.'
-  }
+  { title: 'Headspace', url: 'https://headspace.org.au', type: 'link', tags: ['youth','counselling','services'], description: 'Youth mental health & wellbeing services.'},
+  { title: 'SANE Australia', url: 'https://www.sane.org', type: 'link', tags: ['complex mental health','support']},
+  { title: 'Black Dog Institute', url: 'https://www.blackdoginstitute.org.au', type: 'link', tags: ['research','resources','depression']},
+  { title: 'Head to Health', url: 'https://www.headtohealth.gov.au', type: 'link', tags: ['gov','directory','services']},
+  { title: 'Beyond Blue', url: 'https://www.beyondblue.org.au', type: 'link', tags: ['support','depression','anxiety']},
+  { title: 'Lifeline Australia', url: 'https://lifeline.org.au', type: 'link', tags: ['crisis','24/7','phone']}
 ];
 
 (async () => {
-  try {
-    if (!process.env.MONGO_URI) {
-      console.error('Missing MONGO_URI in .env');
-      process.exit(1);
-    }
-    await mongoose.connect(process.env.MONGO_URI);
-    await Resource.deleteMany({});
-    await Resource.insertMany(data);
-    console.log('✅ Seeded resources');
-  } catch (err) {
-    console.error('❌ Seed failed:', err.message);
-  } finally {
-    await mongoose.disconnect();
-  }
+  await connectDB();
+  await Resource.deleteMany({});
+  await Resource.insertMany(data);
+  console.log('Seeded resources');
+  process.exit(0);
 })();

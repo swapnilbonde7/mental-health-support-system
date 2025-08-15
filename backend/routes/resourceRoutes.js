@@ -1,20 +1,16 @@
-// backend/routes/resourceRoutes.js
 const express = require('express');
-const router = express.Router();
-
+const { protect } = require('../middleware/authMiddleware');
 const {
-  getResources,
-  createResource,
-  updateResource,
-  deleteResource,
+  listResources, getResourceById, createResource, updateResource, deleteResource
 } = require('../controllers/resourceController');
 
-const { protect } = require('../middleware/authMiddleware');
+const router = express.Router();
 
-// Public list (leave open for now so the UI works without login)
-router.get('/', getResources);
+// public reads
+router.get('/', listResources);
+router.get('/:id', getResourceById);
 
-// Create / Update / Delete (protect behind auth)
+// auth writes
 router.post('/', protect, createResource);
 router.put('/:id', protect, updateResource);
 router.delete('/:id', protect, deleteResource);

@@ -1,15 +1,18 @@
 const mongoose = require('mongoose');
 
-const ResourceSchema = new mongoose.Schema(
+const resourceSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
-    type: { type: String, required: true, trim: true }, // e.g. article, video, hotline
-    url:  { type: String, required: true, trim: true },
-    tags: [{ type: String, trim: true }],
-    description: { type: String, trim: true },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // optional: who created it
+    url: { type: String, default: '' },
+    type: {
+      type: String,
+      enum: ['link', 'doc', 'video', 'other'],
+      default: 'link'
+    },
+    description: { type: String, default: '' },
+    tags: { type: [String], default: [] }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Resource', ResourceSchema);
+module.exports = mongoose.model('Resource', resourceSchema);
