@@ -1,20 +1,22 @@
-const router = require('express').Router();
+// backend/routes/resourceRoutes.js
+const express = require('express');
+const router = express.Router();
 
 const {
-  createResource,
   getResources,
+  createResource,
   updateResource,
   deleteResource,
 } = require('../controllers/resourceController');
 
-// NOTE: adjust the import if your starter uses a different name/path:
-const { protect } = require('../middleware/authMiddleware'); 
-// If the starter uses `../middleware/auth`, then:
-// const { protect } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
 
-router.get('/', getResources);                  // Public list
-router.post('/', protect, createResource);      // Create (auth)
-router.put('/:id', protect, updateResource);    // Update (auth)
-router.delete('/:id', protect, deleteResource); // Delete (auth)
+// Public list (leave open for now so the UI works without login)
+router.get('/', getResources);
+
+// Create / Update / Delete (protect behind auth)
+router.post('/', protect, createResource);
+router.put('/:id', protect, updateResource);
+router.delete('/:id', protect, deleteResource);
 
 module.exports = router;
