@@ -1,18 +1,13 @@
 const express = require('express');
-const { protect } = require('../middleware/authMiddleware');
-const {
-  listResources, getResourceById, createResource, updateResource, deleteResource
-} = require('../controllers/resourceController');
-
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
+const rc = require('../controllers/resourceController');
 
-// public reads
-router.get('/', listResources);
-router.get('/:id', getResourceById);
-
-// auth writes
-router.post('/', protect, createResource);
-router.put('/:id', protect, updateResource);
-router.delete('/:id', protect, deleteResource);
+router.use(protect);
+router.get('/', rc.listResources);
+router.post('/', rc.createResource);
+router.get('/:id', rc.getResource);
+router.put('/:id', rc.updateResource);
+router.delete('/:id', rc.deleteResource);
 
 module.exports = router;
