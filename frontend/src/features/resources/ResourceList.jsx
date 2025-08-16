@@ -40,13 +40,35 @@ export default function ResourceList() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Resources</h1>
-        <p className="text-sm text-gray-500">Curated links & docs for the Mental Health Support System.</p>
+      {/* Header with Add button */}
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Resources</h1>
+          <p className="text-sm text-gray-500">
+            Curated links & docs for the Mental Health Support System.
+          </p>
+        </div>
+        <Link
+          to="/resources/new"
+          className="inline-flex items-center rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+        >
+          + Add Resource
+        </Link>
       </div>
 
       {loading && <div className="text-sm text-gray-500">Loading resources…</div>}
-      {!!err && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{err}</div>}
+
+      {!!err && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          {err}
+        </div>
+      )}
+
+      {!loading && !err && items.length === 0 && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+          <p className="text-gray-500">No resources yet. Click “Add Resource” to create one.</p>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((r) => {
