@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const nav = useNavigate();
   const { register } = useAuth();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,23 +15,25 @@ export default function Register() {
     setErr('');
     try {
       await register(name, email, password);
-      nav('/resources');
+      navigate('/resources', { replace: true });
     } catch (e) {
       setErr(e?.response?.data?.message || 'Registration failed.');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-6">
-      <h1 className="text-xl font-semibold mb-4">Register</h1>
-      {err && <div className="mb-3 text-red-600">{err}</div>}
+    <div className="mx-auto max-w-md px-4 py-8">
+      <h1 className="text-xl font-semibold mb-4">Create account</h1>
+      {!!err && <div className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
       <form onSubmit={onSubmit} className="space-y-3">
-        <input className="w-full border p-2 rounded" placeholder="Name" value={name} onChange={e=>setName(e.target.value)} />
-        <input className="w-full border p-2 rounded" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input className="w-full border p-2 rounded" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
-        <button className="px-4 py-2 bg-indigo-600 text-white rounded">Create account</button>
+        <input className="w-full rounded border px-3 py-2" placeholder="Your name" value={name} onChange={(e)=>setName(e.target.value)} />
+        <input className="w-full rounded border px-3 py-2" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
+        <input className="w-full rounded border px-3 py-2" placeholder="••••••••" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} />
+        <button className="rounded bg-indigo-600 px-3 py-2 text-white">Create account</button>
       </form>
-      <p className="mt-3 text-sm">Already have an account? <Link to="/login" className="text-indigo-600">Log in</Link></p>
+      <div className="text-sm mt-3">
+        Already have an account? <Link to="/login" className="text-indigo-600">Log in</Link>
+      </div>
     </div>
   );
 }

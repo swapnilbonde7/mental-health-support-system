@@ -1,49 +1,72 @@
-const asyncHandler = require('express-async-handler');
 const Resource = require('../models/Resource');
 
-// GET /api/resources  (public)
-exports.listResources = asyncHandler(async (_req, res) => {
-  const items = await Resource.find({}).sort({ createdAt: -1 });
-  res.json(items);
-});
+// GET /api/resources (auth)
+exports.listResources = async (req, res, next) => {
+  try {
+    const items = await Resource.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (e) { next(e); }
+};
 
-// GET /api/resources/:id  (public)
-exports.getResourceById = asyncHandler(async (req, res) => {
-  const r = await Resource.findById(req.params.id);
-  if (!r) { res.status(404); throw new Error('Resource not found'); }
-  res.json(r);
-});
+// GET /api/resources/:id (auth)
+exports.getResource = async (req, res, next) => {
+  try {
+    const item = await Resource.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!item) return res.status(404).json({ message: 'Resource not found' });
+    res.json(item);
+  } catch (e) { next(e); }
+};
 
-// POST /api/resources  (protected)
-exports.createResource = asyncHandler(async (req, res) => {
-  const { title, url, type, description, tags } = req.body || {};
-  const r = await Resource.create({
-    title,
-    url: url || '',
-    type: (type || 'link').toLowerCase(),
-    description: description || '',
-    tags: Array.isArray(tags) ? tags : String(tags || '').split(',').map(t => t.trim()).filter(Boolean)
-  });
-  res.status(201).json(r);
-});
+// POST /api/resources (auth)
+exports.createResource = async (req, res, next) => {
+  try {
+    let { title, url, type, tags, description } = req.body || {};
+    if (!title || !title.trim()) return res.status(400).json({ message: 'Title is required' });
 
-// PUT /api/resources/:id  (protected)
-exports.updateResource = asyncHandler(async (req, res) => {
-  const r = await Resource.findById(req.params.id);
-  if (!r) { res.status(404); throw new Error('Resource not found'); }
-  const { title, url, type, description, tags } = req.body || {};
-  if (title !== undefined) r.title = title;
-  if (url !== undefined) r.url = url;
-  if (type !== undefined) r.type = String(type).toLowerCase();
-  if (description !== undefined) r.description = description;
-  if (tags !== undefined) r.tags = Array.isArray(tags) ? tags : String(tags).split(',').map(t => t.trim()).filter(Boolean);
-  res.json(await r.save());
-});
+    if (typeof tags === 'string') {
+      tags = tags.split(',').map(t => t.trim()).filter(Boolean);
+    }
 
-// DELETE /api/resources/:id  (protected)
-exports.deleteResource = asyncHandler(async (req, res) => {
-  const r = await Resource.findById(req.params.id);
-  if (!r) { res.status(404); throw new Error('Resource not found'); }
-  await r.deleteOne();
-  res.json({ ok: true });
-});
+    const resource = await Resource.create({
+      title: title.trim(),
+      url: (url || '').trim(),
+      type: (type || 'link').toLowerCase(),
+      description: (description || '').trim(),
+      tags: Array.isArray(tags) ? tags : [],
+      createdBy: req.user._id,
+    });
+
+    res.status(201).json(resource);
+  } catch (e) { next(e); }
+};
+
+// PUT /api/resources/:id (auth)
+exports.updateResource = async (req, res, next) => {
+  try {
+    const item = await Resource.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!item) return res.status(404).json({ message: 'Resource not found' });
+
+    const { title, url, type, tags, description } = req.body || {};
+    if (title !== undefined) item.title = title;
+    if (url !== undefined) item.url = url;
+    if (type !== undefined) item.type = String(type).toLowerCase();
+    if (description !== undefined) item.description = description;
+    if (tags !== undefined) {
+      let arr = tags;
+      if (typeof arr === 'string') arr = arr.split(',').map(t => t.trim()).filter(Boolean);
+      item.tags = Array.isArray(arr) ? arr : [];
+    }
+
+    res.json(await item.save());
+  } catch (e) { next(e); }
+};
+
+// DELETE /api/resources/:id (auth)
+exports.deleteResource = async (req, res, next) => {
+  try {
+    const item = await Resource.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!item) return res.status(404).json({ message: 'Resource not found' });
+    await item.deleteOne();
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+};

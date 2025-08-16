@@ -1,37 +1,46 @@
-const asyncHandler = require('express-async-handler');
-const bcrypt = require('bcryptjs');
+// backend/controllers/authController.js
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-const sign = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+function sign(u) {
+  return jwt.sign({ id: u._id }, process.env.JWT_SECRET || 'devsecret', { expiresIn: '7d' });
+}
 
-exports.registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body || {};
-  if (!name || !email || !password) {
-    res.status(400);
-    throw new Error('Please provide name, email, password');
-  }
-  const exists = await User.findOne({ email });
-  if (exists) {
-    res.status(400);
-    throw new Error('User already exists');
-  }
-  const hash = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hash });
-  res.status(201).json({ _id: user._id, name: user.name, email: user.email, token: sign(user._id) });
-});
+// POST /api/auth/register
+exports.register = async (req, res, next) => {
+  try {
+    const { name = '', email = '', password = '' } = req.body || {};
+    if (!name.trim() || !email.trim() || !password) {
+      return res.status(400).json({ message: 'Name, email and password are required.' });
+    }
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) return res.status(400).json({ message: 'Email already registered.' });
 
-exports.loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body || {};
-  const user = await User.findOne({ email });
-  if (!user) {
-    res.status(401);
-    throw new Error('Invalid credentials');
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+    const user = await User.create({ name: name.trim(), email: email.toLowerCase(), password: hash });
+
+    const token = sign(user);
+    res.status(201).json({ token, user: { _id: user._id, name: user.name, email: user.email } });
+  } catch (e) {
+    next(e);
   }
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) {
-    res.status(401);
-    throw new Error('Invalid credentials');
+};
+
+// POST /api/auth/login
+exports.login = async (req, res, next) => {
+  try {
+    const { email = '', password = '' } = req.body || {};
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(401).json({ message: 'Invalid email or password.' });
+
+    const ok = await bcrypt.compare(password, user.password || '');
+    if (!ok) return res.status(401).json({ message: 'Invalid email or password.' });
+
+    const token = sign(user);
+    res.json({ token, user: { _id: user._id, name: user.name, email: user.email } });
+  } catch (e) {
+    next(e);
   }
-  res.json({ _id: user._id, name: user.name, email: user.email, token: sign(user._id) });
-});
+};
