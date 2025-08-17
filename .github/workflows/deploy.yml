@@ -1,57 +1,50 @@
-name: Deploy to EC2 (self-hosted)
+name: Deploy to EC2 (ubuntu-runner)
 
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   deploy:
-    # labels 
-    runs-on: [self-hosted, ec2, mhss]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_PATH: ${{ secrets.EC2_PATH }}
+      EC2_KEY: ${{ secrets.EC2_KEY }}
 
     steps:
-      - name: Check runner is alive
-        run: |
-          whoami
-          hostname
-          node -v || true
-          npm -v  || true
-          pm2 -v  || true
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- BACKEND ---
-      - name: Install backend deps
-        working-directory: backend
-        run: npm ci
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      - name: Restart API with PM2
-        working-directory: backend
-        run: |
-          # Start or restart the API (no error if not running)
-          pm2 restart mhss-api || pm2 start server.js --name mhss-api
-          pm2 save
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
+          source: "."
+          target: ${{ env.EC2_PATH }}
 
-      # --- FRONTEND ---
-      - name: Install frontend deps
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        env:
-          # Your frontend expects API at /api in production
-          # (we already proxy /api via Nginx, so nothing else needed)
-          CI: "false"
-        run: npm run build
-
-      - name: Publish build to Nginx root
-        run: |
-          sudo mkdir -p /var/www/mhss/app/frontend
-          sudo rm -rf /var/www/mhss/app/frontend/build
-          sudo cp -r frontend/build /var/www/mhss/app/frontend/build
-          sudo chown -R ubuntu:ubuntu /var/www/mhss/app
-
-      - name: Reload Nginx
-        run: sudo systemctl reload nginx
+      - name: SSH into EC2 and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
+          script: |
+            cd ${{ env.EC2_PATH }}
+            pm2 stop all || true
+            cd backend && npm install
+            pm2 start server.js --name mhss-api --update-env
+            cd ../frontend && npm install && npm run build
+            pm2 serve build 3000 --name mhss-frontend --spa
+            pm2 save
