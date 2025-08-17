@@ -1,30 +1,57 @@
-name: Deploy to EC2
+name: Deploy to EC2 (self-hosted)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   deploy:
-    runs-on: self-hosted   
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    # labels 
+    runs-on: [self-hosted, ec2, mhss]
 
-      - name: Install dependencies
+    steps:
+      - name: Check runner is alive
         run: |
-          cd backend
-          npm install
-          cd ../frontend
-          npm install
+          whoami
+          hostname
+          node -v || true
+          npm -v  || true
+          pm2 -v  || true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- BACKEND ---
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Restart API with PM2
+        working-directory: backend
+        run: |
+          # Start or restart the API (no error if not running)
+          pm2 restart mhss-api || pm2 start server.js --name mhss-api
+          pm2 save
+
+      # --- FRONTEND ---
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
 
       - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+        working-directory: frontend
+        env:
+          # Your frontend expects API at /api in production
+          # (we already proxy /api via Nginx, so nothing else needed)
+          CI: "false"
+        run: npm run build
 
-      - name: Restart backend with PM2
+      - name: Publish build to Nginx root
         run: |
-          cd backend
-          pm2 restart mhss-api || pm2 start index.js --name mhss-api
+          sudo mkdir -p /var/www/mhss/app/frontend
+          sudo rm -rf /var/www/mhss/app/frontend/build
+          sudo cp -r frontend/build /var/www/mhss/app/frontend/build
+          sudo chown -R ubuntu:ubuntu /var/www/mhss/app
+
+      - name: Reload Nginx
+        run: sudo systemctl reload nginx
