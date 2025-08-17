@@ -1,75 +1,30 @@
-name: "ci: add deploy workflow"
+name: Deploy to EC2
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-      EC2_PATH: ${{ secrets.EC2_PATH }}
-
+    runs-on: self-hosted   
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Prepare SSH key
+      - name: Install dependencies
         run: |
-          echo "${{ secrets.EC2_KEY }}" > key.pem
-          chmod 600 key.pem
+          cd backend
+          npm install
+          cd ../frontend
+          npm install
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
-
-      # Build FRONTEND locally (known-good artifact)
-      - name: Install & build FRONTEND
-        working-directory: frontend
+      - name: Build frontend
         run: |
-          npm ci
-          echo "REACT_APP_API_URL=/api" > .env.production
+          cd frontend
           npm run build
 
-      # Ensure target folders exist on EC2 (idempotent)
-      - name: Create target folders on EC2
+      - name: Restart backend with PM2
         run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${EC2_PATH}/frontend/build ${EC2_PATH}/backend"
-
-      - name: Sync FRONTEND build to EC2
-        run: |
-          rsync -azv --delete \
-            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
-            frontend/build/ \
-            ${EC2_USER}@${EC2_HOST}:${EC2_PATH}/frontend/build/
-
-      - name: Sync BACKEND source to EC2
-        run: |
-          rsync -azv --delete \
-            --exclude "node_modules" \
-            --exclude ".env" \
-            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
-            backend/ \
-            ${EC2_USER}@${EC2_HOST}:${EC2_PATH}/backend/
-
-      - name: Install backend deps & restart API on EC2
-        run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
-            set -euo pipefail
-            cd ${EC2_PATH}/backend
-            npm ci --omit=dev
-            if pm2 describe mhss-api >/dev/null 2>&1; then
-              pm2 restart mhss-api
-            else
-              pm2 start server.js --name mhss-api
-            fi
-            sudo systemctl reload nginx
-          EOF
+          cd backend
+          pm2 restart mhss-api || pm2 start index.js --name mhss-api
