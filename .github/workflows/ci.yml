@@ -20,7 +20,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Set up Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -36,10 +35,9 @@ jobs:
           echo "Secret 2 is: $JWT_SECRET"
           echo "Secret 3 is: $PORT"
 
-      - name: Stop PM2
-        run: pm2 stop all
+      - name: Stop PM2 (ignore if none)
+        run: pm2 stop all || true
 
-      # Install dependencies for backend
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: |
@@ -47,7 +45,6 @@ jobs:
           yarn --version
           yarn install
 
-      # Install dependencies for frontend
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: |
@@ -56,7 +53,6 @@ jobs:
           yarn install
           yarn run build
 
-      # Run backend tests
       - name: Run Backend Tests
         working-directory: ./backend
         env:
@@ -65,12 +61,11 @@ jobs:
           PORT: ${{ secrets.PORT }}
         run: npm test
 
-      # Clean install (do this in backend for your repo layout)
+      # If your backend has no package-lock.json, switch this to "npm install"
       - name: npm ci (backend)
         working-directory: ./backend
         run: npm ci
 
-      # Write .env from PROD secret
       - name: Write .env
         working-directory: ./backend
         run: |
