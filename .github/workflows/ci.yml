@@ -1,0 +1,84 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        node-version: [22]
+
+    environment: MONGO_URI
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Print Env Secret
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          PORT: ${{ secrets.PORT }}
+        run: |
+          echo "Secret 1 is: $MONGO_URI"
+          echo "Secret 2 is: $JWT_SECRET"
+          echo "Secret 3 is: $PORT"
+
+      - name: Stop PM2
+        run: pm2 stop all
+
+      # Install dependencies for backend
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: |
+          npm install --global yarn
+          yarn --version
+          yarn install
+
+      # Install dependencies for frontend
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: |
+          df -h
+          sudo rm -rf ./build
+          yarn install
+          yarn run build
+
+      # Run backend tests
+      - name: Run Backend Tests
+        working-directory: ./backend
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          PORT: ${{ secrets.PORT }}
+        run: npm test
+
+      # Clean install (do this in backend for your repo layout)
+      - name: npm ci (backend)
+        working-directory: ./backend
+        run: npm ci
+
+      # Write .env from PROD secret
+      - name: Write .env
+        working-directory: ./backend
+        run: |
+          touch .env
+          echo "${{ secrets.PROD }}" > .env
+
+      - name: PM2 start all
+        run: pm2 start all
+
+      - name: PM2 restart all
+        run: pm2 restart all
