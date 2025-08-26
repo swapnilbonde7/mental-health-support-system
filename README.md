@@ -20,4 +20,4 @@ This project is developed as part of IFN636 Assessment 1 at QUT. The MHSS platfo
 - Public EC2 URL: `http://3.25.88.162:3000`  
 - GitHub Actions CI/CD: https://github.com/swapnilbonde7/mental-health-support-system/actions
 
---- ##Example for Demo ---
+-------- ##Example for Demo -------
