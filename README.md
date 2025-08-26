@@ -21,4 +21,4 @@ This project is developed as part of IFN636 Assessment 1 at QUT. The MHSS platfo
 - GitHub Actions CI/CD: https://github.com/swapnilbonde7/mental-health-support-system/actions
 
 < ------- Example for Demo ------- >
-IFN636
+IFN636 - Assignment 1
